@@ -10,8 +10,9 @@ program P
   class C {
     int f;
   }
-
+   //
   int i;
+  kj=1;
   char ch;
   C c, c2;
   char[] a;

@@ -26,13 +26,17 @@ boolean lexicalError=false;
  		         static int isArray=0;
  		         static int isAssign=0;
  		         static int isMethod=0;
+ 		         static int isField=0;
  		         static String methodParams="";
  		         static int isParams=0;
+ 		         static ArrayList<String> classes=new ArrayList<String>();
  		         static ArrayList<String> varTypes=new ArrayList<String>();
  		         private java.util.Queue<Token> queue = new java.util.LinkedList<Token>();
  		         public static SymbolHashTable symbolTable=new SymbolHashTable();
 
  				public void setTable(){
+ 				 varTypes.add("int");
+                    varTypes.add("char");
  					symbolTable.insert("int","int", "preloaded", 0,0);
  					symbolTable.insert("char","char", "preloaded", 0,0);
  					symbolTable.insert("null","null", "preloaded", 0,0);
@@ -103,6 +107,7 @@ boolean lexicalError=false;
  								node.type = getText();
  								node.structure = "class";
  								node.scope = scope;
+ 								isClass=1;
  								isVar = 1;
  							}catch(NullPointerException e){
  								System.out.println("ERROR CLASS");
@@ -137,7 +142,11 @@ boolean lexicalError=false;
  		                isParams=0;
  		             }
  		             if(next.getType()== TOK_IDENTIFIER  && !(next.getText().equals("int") || next.getText().equals("char") ||  next.getText().equals("program") ||  next.getText().equals("class") || next.getText().equals("final") )){
-
+                     if(isClass==1){
+                     varTypes.add(getText());
+                     classes.add(getText());
+                     isClass=0;
+                     }else
                      if(isMethod==1){
                           node=new SymbolTableNode();
                           node.name=getText();
@@ -331,10 +340,15 @@ public void setLexer(grLexer lexer){
                                 System.out.println("is arr "+lexer.isArray);
                             }
                             else if(ruleNames[ruleIndex].equals("semi")) {
-
+                                lexer.isClass=0;
                                 lexer.isArray=0;
 
                             }
+                            else if(ruleNames[ruleIndex].equals("tok_lcb")) {
+                                                            lexer.isClass=0;
+                                                            lexer.isArray=0;
+
+                                                        }
 
 
         }

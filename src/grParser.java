@@ -131,10 +131,15 @@ public class grParser extends Parser {
 	                                System.out.println("is arr "+lexer.isArray);
 	                            }
 	                            else if(ruleNames[ruleIndex].equals("semi")) {
-
+	                                lexer.isClass=0;
 	                                lexer.isArray=0;
 
 	                            }
+	                            else if(ruleNames[ruleIndex].equals("tok_lcb")) {
+	                                                            lexer.isClass=0;
+	                                                            lexer.isArray=0;
+
+	                                                        }
 
 
 	        }
