@@ -104,6 +104,8 @@ public class grLexer extends Lexer {
 
 	boolean lexicalError=false;
 	 public ArrayList<Integer> tracker=new ArrayList<Integer>(){{   add(0);}};;
+	 Writer errors=new Writer("errors.txt");
+	 Writer symbols=new Writer("Symbol Table");
 	 		         public static Stack<Stack<ASTNode>> tempStack=new Stack<Stack<ASTNode>>(); //list of children of the current subroot
 	 		         Stack<ASTNode> nodeStack=new Stack<ASTNode>(); //all subtrees
 	 		         ASTNode Ptree=new ASTNode(); //The root of the program
@@ -115,9 +117,10 @@ public class grLexer extends Lexer {
 	 		         static int isArray=0;
 	 		         static int isAssign=0;
 	 		         static int isMethod=0;
+	 		         static int isField=0;
 	 		         static String methodParams="";
 	 		         static int isParams=0;
-	 		         static ArrayList<String> classes=new ArrayList<String>();
+	 		         static SymbolHashTable classes=new SymbolHashTable();
 	 		         static ArrayList<String> varTypes=new ArrayList<String>();
 	 		         private java.util.Queue<Token> queue = new java.util.LinkedList<Token>();
 	 		         public static SymbolHashTable symbolTable=new SymbolHashTable();
@@ -163,14 +166,14 @@ public class grLexer extends Lexer {
 	 		             if(next.getText().equals("int") ||next.getText().equals("char") || next.getText().equals("null") ||next.getText().equals("chr") ||next.getText().equals("ord")||next.getText().equals("len")||next.getText().equals("program")||next.getText().equals("class")
 	 							 ||next.getText().equals("if") ||next.getText().equals("else")||next.getText().equals("while")||next.getText().equals("read")||next.getText().equals("print")||next.getText().equals("return")||next.getText().equals("void")||next.getText().equals("final")||next.getText().equals("new")){
 	 		             	if(isVar==1 && isMethod==0){
-	 							System.out.println(next.getText()+" is reserved keyword");
+	 							errors.write(next.getText()+" is reserved keyword.\n");
 	 						}
 	 					 }
 
 
 
 	 					 if(getText().equals("\'") && isArray==1){
-	 					    System.out.println("Can only use number indeces in arrays at line "+getLine());
+	 					    errors.write("Can only use number indeces in arrays at line "+getLine()+"\n");
 	 					 }
 	 		             if(next.getType()==TOK_PROGRAM){
 
@@ -183,7 +186,6 @@ public class grLexer extends Lexer {
 	 								 node.isFinal = 0;
 	 								 isProgram = 1;
 	 							 } catch (NullPointerException e) {
-	 								 System.out.println("Error in program");
 	 							 }
 
 	 		             }
@@ -196,23 +198,20 @@ public class grLexer extends Lexer {
 	 								node.structure = "class";
 	 								node.scope = scope;
 	 								isClass=1;
+	 								classes.insert(getText(), getText(), "class name", 0, scope, 0);
 	 								isVar = 1;
 	 							}catch(NullPointerException e){
-	 								System.out.println("ERROR CLASS");
 	 							}
 
 	 		             }
 	 		             if(next.getType()==TOK_FINAL){
-	 	                        System.out.println("Final");
 	 							 try {
 	 								 node = new SymbolTableNode();
 	 								 node.type = getText();
 	 								 node.structure = "final";
 	 								 node.scope = scope;
 	 								 node.isFinal=1;
-	 							 } catch (NullPointerException e) {
-	 								 System.out.println("ERROR FINAL");
-	 							 }
+	 							 } catch (NullPointerException e) { 							 }
 	 		             }
 	 		             if (next.getType() == TOK_IDENTIFIER && (next.getText().equals("int") || next.getText().equals("char")||varTypes.contains(next.getText()))){
 	 		             try{
@@ -230,9 +229,12 @@ public class grLexer extends Lexer {
 	 		                isParams=0;
 	 		             }
 	 		             if(next.getType()== TOK_IDENTIFIER  && !(next.getText().equals("int") || next.getText().equals("char") ||  next.getText().equals("program") ||  next.getText().equals("class") || next.getText().equals("final") )){
+	                     if(isField==1){
+	                          classes.insert(getText(), "field", "", 0, scope, 0);
+	                     }
 	                     if(isClass==1){
 	                     varTypes.add(getText());
-	                     classes.add(getText());
+	                     isField=1;
 	                     isClass=0;
 	                     }else
 	                     if(isMethod==1){
@@ -266,7 +268,6 @@ public class grLexer extends Lexer {
 
 	 		               isVar=0;
 	 		               }catch(NullPointerException e){
-	 		                   System.out.println("ERROR "+getText());
 	 		               }
 
 	 		              }else
@@ -277,24 +278,22 @@ public class grLexer extends Lexer {
 	 								 node.structure="TOK_IDENTIFIER";
 	 								 isProgram=2;
 	 							 }catch(NullPointerException e){
-	 								 System.out.println("ERROR "+getText());
 	 							 }
 	 						 }else
 	 						 if(isVar!=1 && isAssign==0){
 
 	 						    if(!checkScope(getText())){
-	 							    System.out.println("variable " +getText()+" not defined in scope");
+	 							    errors.write("variable " +getText()+" not defined in scope\n");
 	 							}else if(checkScopeNode(getText()).isFinal==1){
-	 							    System.out.println("variable " +getText()+" is final.");
+	 							    errors.write("variable " +getText()+" is final. \n");
 	 							}
 	 						 }else
 	 						 if(isAssign==1){
 	 						  if(!checkScope(getText()))
-	 							    System.out.println("variable " +getText()+" not defined in scope");
+	 							    errors.write("variable " +getText()+" not defined in scope \n");
 	 						 }
 	 		             }
 	 		             if(node!=null && node.name!=null && !checkScope(node.name)){
-	 		               System.out.println("inserting "+ getText());
 		 		               symbolTable.insert(node.name, node.type, node.structure, node.isFinal, node.scope, node.isArray);
 	 		               node=null;
 	 		             }else {
@@ -303,14 +302,13 @@ public class grLexer extends Lexer {
 	 		             	if(!(getText().equals(",") || getText().equals(";") || getText().equals(".") || getText().equals("[") || getText().equals("]") || getText().equals("{") || getText().equals("}") || getText().equals("(") || getText().equals(")") || getText().equals("+") || getText().equals("-") || getText().equals("=")|| getText().equals("/") || getText().equals("&") || getText().equals("*") || varTypes.contains(getText()))){
 	                            try{
 	                            	 		             	   		int x=Integer.parseInt(getText());
-	                            								   System.out.println("variable already exists: " + getText());
+	                            								   errors.write("variable already exists: " + getText()+"\n");
 	                            							   }catch(NumberFormatException e){
 
 	                            							   }
 	     		            }
 
 	 						}else if(node==null && node.name==null){
-	 							System.out.println("ERROR " + getText());
 	 						}
 
 	 					 }catch(NullPointerException e){
@@ -321,6 +319,9 @@ public class grLexer extends Lexer {
 	 					   if(isMethod==1){
 	 					    isMethod=0;
 	 					     isVar=0;
+	 					   }
+	 					  if(next.getType()==TOK_RCB){
+	 					    isField=0;
 	 					   }
 	 		               	count++;
 	 		               	tracker.add(count);
@@ -395,15 +396,16 @@ public class grLexer extends Lexer {
 	 	                    SymbolTableNode n = (SymbolTableNode) symbolTable.SymbolHashTable().get(i);
 	 	                    while(n != null){
 	 	                        if(n.isArray!=1){
-	 		                    System.out.println(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type);
+	 		                    symbols.write(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type+"\n");
 	 		                    }else{
-	 		                        System.out.println(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type+"[]");
+	 		                        symbols.write(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type+"[]"+"\n");
 	 		                    }
 	 	                        n=n.child;
 	 	                        line++;
 	 	                    }
 	 	                }
 	 				}
+	 				
 
 
 	public grLexer(CharStream input) {

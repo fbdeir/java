@@ -25,7 +25,6 @@ public class main  {
         parser.prog();
         System.out.println("Symbol Table");
         lexer.printSymbolTable();
-        System.out.println("Vars: "+Arrays.toString(lexer.varTypes.toArray()));
 
 
         /*System.out.println("tempstack: ");

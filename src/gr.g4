@@ -15,6 +15,8 @@ import java.util.Set;
 @lexer::members{
 boolean lexicalError=false;
  public ArrayList<Integer> tracker=new ArrayList<Integer>(){{   add(0);}};;
+ Writer errors=new Writer("errors.txt");
+ Writer symbols=new Writer("Symbol Table");
  		         public static Stack<Stack<ASTNode>> tempStack=new Stack<Stack<ASTNode>>(); //list of children of the current subroot
  		         Stack<ASTNode> nodeStack=new Stack<ASTNode>(); //all subtrees
  		         ASTNode Ptree=new ASTNode(); //The root of the program
@@ -29,7 +31,7 @@ boolean lexicalError=false;
  		         static int isField=0;
  		         static String methodParams="";
  		         static int isParams=0;
- 		         static ArrayList<String> classes=new ArrayList<String>();
+ 		         static SymbolHashTable classes=new SymbolHashTable();
  		         static ArrayList<String> varTypes=new ArrayList<String>();
  		         private java.util.Queue<Token> queue = new java.util.LinkedList<Token>();
  		         public static SymbolHashTable symbolTable=new SymbolHashTable();
@@ -75,14 +77,14 @@ boolean lexicalError=false;
  		             if(next.getText().equals("int") ||next.getText().equals("char") || next.getText().equals("null") ||next.getText().equals("chr") ||next.getText().equals("ord")||next.getText().equals("len")||next.getText().equals("program")||next.getText().equals("class")
  							 ||next.getText().equals("if") ||next.getText().equals("else")||next.getText().equals("while")||next.getText().equals("read")||next.getText().equals("print")||next.getText().equals("return")||next.getText().equals("void")||next.getText().equals("final")||next.getText().equals("new")){
  		             	if(isVar==1 && isMethod==0){
- 							System.out.println(next.getText()+" is reserved keyword");
+ 							errors.write(next.getText()+" is reserved keyword.\n");
  						}
  					 }
 
 
 
  					 if(getText().equals("\'") && isArray==1){
- 					    System.out.println("Can only use number indeces in arrays at line "+getLine());
+ 					    errors.write("Can only use number indeces in arrays at line "+getLine()+"\n");
  					 }
  		             if(next.getType()==TOK_PROGRAM){
 
@@ -95,7 +97,6 @@ boolean lexicalError=false;
  								 node.isFinal = 0;
  								 isProgram = 1;
  							 } catch (NullPointerException e) {
- 								 System.out.println("Error in program");
  							 }
 
  		             }
@@ -108,23 +109,20 @@ boolean lexicalError=false;
  								node.structure = "class";
  								node.scope = scope;
  								isClass=1;
+ 								classes.insert(getText(), getText(), "class name", 0, scope, 0);
  								isVar = 1;
  							}catch(NullPointerException e){
- 								System.out.println("ERROR CLASS");
  							}
 
  		             }
  		             if(next.getType()==TOK_FINAL){
- 	                        System.out.println("Final");
  							 try {
  								 node = new SymbolTableNode();
  								 node.type = getText();
  								 node.structure = "final";
  								 node.scope = scope;
  								 node.isFinal=1;
- 							 } catch (NullPointerException e) {
- 								 System.out.println("ERROR FINAL");
- 							 }
+ 							 } catch (NullPointerException e) { 							 }
  		             }
  		             if (next.getType() == TOK_IDENTIFIER && (next.getText().equals("int") || next.getText().equals("char")||varTypes.contains(next.getText()))){
  		             try{
@@ -142,9 +140,12 @@ boolean lexicalError=false;
  		                isParams=0;
  		             }
  		             if(next.getType()== TOK_IDENTIFIER  && !(next.getText().equals("int") || next.getText().equals("char") ||  next.getText().equals("program") ||  next.getText().equals("class") || next.getText().equals("final") )){
+                     if(isField==1){
+                          classes.insert(getText(), "field", "", 0, scope, 0);
+                     }
                      if(isClass==1){
                      varTypes.add(getText());
-                     classes.add(getText());
+                     isField=1;
                      isClass=0;
                      }else
                      if(isMethod==1){
@@ -178,7 +179,6 @@ boolean lexicalError=false;
 
  		               isVar=0;
  		               }catch(NullPointerException e){
- 		                   System.out.println("ERROR "+getText());
  		               }
 
  		              }else
@@ -189,24 +189,22 @@ boolean lexicalError=false;
  								 node.structure="TOK_IDENTIFIER";
  								 isProgram=2;
  							 }catch(NullPointerException e){
- 								 System.out.println("ERROR "+getText());
  							 }
  						 }else
  						 if(isVar!=1 && isAssign==0){
 
  						    if(!checkScope(getText())){
- 							    System.out.println("variable " +getText()+" not defined in scope");
+ 							    errors.write("variable " +getText()+" not defined in scope\n");
  							}else if(checkScopeNode(getText()).isFinal==1){
- 							    System.out.println("variable " +getText()+" is final.");
+ 							    errors.write("variable " +getText()+" is final. \n");
  							}
  						 }else
  						 if(isAssign==1){
  						  if(!checkScope(getText()))
- 							    System.out.println("variable " +getText()+" not defined in scope");
+ 							    errors.write("variable " +getText()+" not defined in scope \n");
  						 }
  		             }
  		             if(node!=null && node.name!=null && !checkScope(node.name)){
- 		               System.out.println("inserting "+ getText());
 	 		               symbolTable.insert(node.name, node.type, node.structure, node.isFinal, node.scope, node.isArray);
  		               node=null;
  		             }else {
@@ -215,14 +213,13 @@ boolean lexicalError=false;
  		             	if(!(getText().equals(",") || getText().equals(";") || getText().equals(".") || getText().equals("[") || getText().equals("]") || getText().equals("{") || getText().equals("}") || getText().equals("(") || getText().equals(")") || getText().equals("+") || getText().equals("-") || getText().equals("=")|| getText().equals("/") || getText().equals("&") || getText().equals("*") || varTypes.contains(getText()))){
                             try{
                             	 		             	   		int x=Integer.parseInt(getText());
-                            								   System.out.println("variable already exists: " + getText());
+                            								   errors.write("variable already exists: " + getText()+"\n");
                             							   }catch(NumberFormatException e){
 
                             							   }
      		            }
 
  						}else if(node==null && node.name==null){
- 							System.out.println("ERROR " + getText());
  						}
 
  					 }catch(NullPointerException e){
@@ -233,6 +230,9 @@ boolean lexicalError=false;
  					   if(isMethod==1){
  					    isMethod=0;
  					     isVar=0;
+ 					   }
+ 					  if(next.getType()==TOK_RCB){
+ 					    isField=0;
  					   }
  		               	count++;
  		               	tracker.add(count);
@@ -307,15 +307,16 @@ boolean lexicalError=false;
  	                    SymbolTableNode n = (SymbolTableNode) symbolTable.SymbolHashTable().get(i);
  	                    while(n != null){
  	                        if(n.isArray!=1){
- 		                    System.out.println(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type);
+ 		                    symbols.write(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type+"\n");
  		                    }else{
- 		                        System.out.println(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type+"[]");
+ 		                        symbols.write(line+": "+n.name+", "+n.structure+", scope: "+n.scope+", type: "+n.type+"[]"+"\n");
  		                    }
  	                        n=n.child;
  	                        line++;
  	                    }
  	                }
  				}
+
 }
 @parser:: members{
 grLexer lexer;
@@ -327,7 +328,6 @@ public void setLexer(grLexer lexer){
         super.enterRule(localctx, state, ruleIndex);
 
         	if (ruleNames[ruleIndex].equals("methodDecl")) {
-            					System.out.println("entering method");
             					lexer.isMethod = 1;
             				} else if (lexer.isMethod == 1) {
             					if (ruleNames[ruleIndex].equals("varType")) {
@@ -337,7 +337,6 @@ public void setLexer(grLexer lexer){
             				}
             				else if(ruleNames[ruleIndex].equals("varArray")) {
                                 lexer.isArray=1;
-                                System.out.println("is arr "+lexer.isArray);
                             }
                             else if(ruleNames[ruleIndex].equals("semi")) {
                                 lexer.isClass=0;
@@ -345,10 +344,14 @@ public void setLexer(grLexer lexer){
 
                             }
                             else if(ruleNames[ruleIndex].equals("tok_lcb")) {
-                                                            lexer.isClass=0;
-                                                            lexer.isArray=0;
-
-                                                        }
+                                lexer.isClass=0;
+                                lexer.isArray=0;
+                            }
+                             else if(ruleNames[ruleIndex].equals("tok_rcb")) {
+                                lexer.isClass=0;
+                                lexer.isArray=0;
+                                lexer.isField=0;
+                            }
 
 
         }
@@ -390,17 +393,17 @@ TOK_PROGRAM: 'program';
 
 //Rules
 program: prog;
-prog: TOK_PROGRAM TOK_IDENTIFIER (constDecl|varDecl|classDecl)* TOK_LCB (methodDecl)* TOK_RCB EOF;
-
+prog: TOK_PROGRAM TOK_IDENTIFIER (constDecl|varDecl|classDecl)* TOK_LCB (methodDecl)* tok_rcb EOF;
+tok_rcb: TOK_RCB;
 varDecl: varType TOK_IDENTIFIER  (TOK_COMMA TOK_IDENTIFIER)* semi;
 
 constDecl: TOK_FINAL varType TOK_IDENTIFIER TOK_OP_ASSIGN (TOK_INTLIT|TOK_CHARLIT) semi;
-classDecl: TOK_CLASS  TOK_IDENTIFIER TOK_LCB (varDecl)* TOK_RCB ;
+classDecl: TOK_CLASS  TOK_IDENTIFIER TOK_LCB (varDecl)* tok_rcb ;
 methodDecl: (varType| TOK_VOID) TOK_IDENTIFIER TOK_LP (formPars)? TOK_RP (varDecl)* block;
 formPars: varType TOK_IDENTIFIER (TOK_COMMA varType TOK_IDENTIFIER)*;
-block: TOK_LCB (statement)* TOK_RCB;
+block: TOK_LCB (statement)* tok_rcb;
 statement: designator (TOK_OP_ASSIGN expr|actPars) semi
-| TOK_IF TOK_LP  condition TOK_RP (TOK_LCB)? (statement)* (TOK_RCB)? (TOK_ELSE (TOK_LCB)? statement (TOK_RCB)?)*
+| TOK_IF TOK_LP  condition TOK_RP (TOK_LCB)? (statement)* (tok_rcb)? (TOK_ELSE (TOK_LCB)? statement (tok_rcb)?)*
 | TOK_WHILE TOK_LP condition TOK_RP statement
 | TOK_RETURN (expr)? semi
 | TOK_READ TOK_LP designator TOK_RP semi
@@ -420,7 +423,7 @@ factor: designator (actPars)?
 designator: TOK_IDENTIFIER (TOK_DOT TOK_IDENTIFIER | (validarray|invalidarray))*;
 x:TOK_IDENTIFIER ((TOK_LP expr TOK_RP)?|(tok_lb(expr)? tok_rb)*);
 validarray:tok_lb expr tok_rb;
-invalidarray:tok_lb '\'' {System.out.println("cannot define with character index");} tok_rb;
+invalidarray:tok_lb '\'' {lexer.errors.write("cannot define with character index\n");} tok_rb;
 tok_lb: TOK_LB;
 tok_rb:TOK_RB;
 semi: TOK_SEMI;

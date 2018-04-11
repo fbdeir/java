@@ -33,6 +33,16 @@ public interface grListener extends ParseTreeListener {
 	 */
 	void exitProg(grParser.ProgContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link grParser#tok_rcb}.
+	 * @param ctx the parse tree
+	 */
+	void enterTok_rcb(grParser.Tok_rcbContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link grParser#tok_rcb}.
+	 * @param ctx the parse tree
+	 */
+	void exitTok_rcb(grParser.Tok_rcbContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link grParser#varDecl}.
 	 * @param ctx the parse tree
 	 */
